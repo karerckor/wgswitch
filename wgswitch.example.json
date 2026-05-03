@@ -1,0 +1,14 @@
+{
+  "profiles": {
+    "es": {
+      "label": "Spain",
+      "description": "",
+      "emoji": "🇪🇸"
+    },
+    "ua": {
+      "label": "Ukraine",
+      "description": "",
+      "emoji": "🇺🇦"
+    }
+  }
+}
