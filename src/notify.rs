@@ -42,7 +42,9 @@ impl Notifier {
 fn format_profile(name: &str, meta: Option<&ProfileMeta>) -> String {
     let emoji = meta.and_then(|m| m.emoji.as_deref());
     let label = meta.and_then(|m| m.label.as_deref()).unwrap_or(name);
-    let description = meta.and_then(|m| m.description.as_deref()).filter(|s| !s.is_empty());
+    let description = meta
+        .and_then(|m| m.description.as_deref())
+        .filter(|s| !s.is_empty());
 
     let head = match emoji {
         Some(e) => format!("{} {}", e, label),
@@ -71,12 +73,10 @@ const NOTIFY_SEND_PATHS: &[&str] = &[
 ];
 
 fn first_existing(candidates: &[&'static str]) -> Option<&'static str> {
-    for c in candidates {
-        if Path::new(c).is_file() {
-            return Some(c);
-        }
-    }
-    None
+    candidates
+        .iter()
+        .find(|c| Path::new(c).is_file())
+        .copied()
 }
 
 /// AppleScript treats `\` and `"` specially inside string literals; everything
@@ -138,7 +138,10 @@ mod tests {
             description: Some("Office network".into()),
             emoji: Some("🏢".into()),
         };
-        assert_eq!(format_profile("work", Some(&meta)), "🏢 Work VPN\nOffice network");
+        assert_eq!(
+            format_profile("work", Some(&meta)),
+            "🏢 Work VPN\nOffice network"
+        );
     }
 
     #[test]

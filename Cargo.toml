@@ -2,6 +2,15 @@
 name = "wgswitch"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.85"
+description = "Thin wrapper around wg-quick for fast WireGuard profile switching, with JSON status output for status bars (waybar/swiftbar/raycast)"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/karerckor/wgswitch"
+homepage = "https://github.com/karerckor/wgswitch"
+readme = "README.md"
+keywords = ["wireguard", "wg-quick", "vpn", "cli", "swiftbar"]
+categories = ["command-line-utilities", "network-programming"]
+authors = ["Igor Olshevsky <igor.olshevsky@yojji.io>"]
 
 [dependencies]
 clap = { version = "4.6.1", features = ["derive"] }

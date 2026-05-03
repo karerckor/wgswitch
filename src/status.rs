@@ -109,10 +109,7 @@ impl Snapshot {
             }
             for peer in &p.peers {
                 let endpoint = peer.endpoint.as_deref().unwrap_or("(none)");
-                let hs = peer
-                    .last_handshake_ago_human
-                    .as_deref()
-                    .unwrap_or("never");
+                let hs = peer.last_handshake_ago_human.as_deref().unwrap_or("never");
                 out.push_str(&format!(
                     "    peer:     {}  •  handshake: {}\n",
                     endpoint, hs
@@ -158,14 +155,9 @@ pub fn collect(cfg: &Config) -> Result<Snapshot> {
         };
 
         let (peers, totals) = if is_active {
-            let totals_raw: (u64, u64) = peers_raw
-                .iter()
-                .fold((0u64, 0u64), |(rx, tx), p| {
-                    (
-                        rx + p.rx_bytes.unwrap_or(0),
-                        tx + p.tx_bytes.unwrap_or(0),
-                    )
-                });
+            let totals_raw: (u64, u64) = peers_raw.iter().fold((0u64, 0u64), |(rx, tx), p| {
+                (rx + p.rx_bytes.unwrap_or(0), tx + p.tx_bytes.unwrap_or(0))
+            });
             current_samples.insert(
                 id.clone(),
                 state::Sample {
@@ -242,10 +234,7 @@ fn build_totals(
             let delta_ms = now_ms.saturating_sub(prev.timestamp_ms);
             // Useful window: 50ms..=10min. Outside that we treat the sample as
             // either too noisy or too stale to derive a meaningful rate.
-            if (50..=600_000).contains(&delta_ms)
-                && rx >= sample.rx
-                && tx >= sample.tx
-            {
+            if (50..=600_000).contains(&delta_ms) && rx >= sample.rx && tx >= sample.tx {
                 let secs = delta_ms as f64 / 1000.0;
                 let rxr = ((rx - sample.rx) as f64 / secs).round() as u64;
                 let txr = ((tx - sample.tx) as f64 / secs).round() as u64;

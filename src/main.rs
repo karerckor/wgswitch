@@ -13,7 +13,11 @@ use config::Config;
 use notify::Notifier;
 
 #[derive(Parser)]
-#[command(name = "wgswitch", version, about = "Thin wrapper around wg-quick for quick VPN switching")]
+#[command(
+    name = "wgswitch",
+    version,
+    about = "Thin wrapper around wg-quick for quick VPN switching"
+)]
 struct Cli {
     /// Path to wgswitch metadata config (default: /etc/wgswitch.json or ~/.wgswitch.json).
     /// Only display metadata is read from here; binary paths and conf paths cannot be overridden.

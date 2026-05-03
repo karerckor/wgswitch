@@ -37,10 +37,10 @@ impl Config {
             return Ok(Config::default());
         }
         verify_perms(&path)?;
-        let raw = std::fs::read_to_string(&path)
-            .with_context(|| format!("read {}", path.display()))?;
-        let cfg: Config = serde_json::from_str(&raw)
-            .with_context(|| format!("parse {}", path.display()))?;
+        let raw =
+            std::fs::read_to_string(&path).with_context(|| format!("read {}", path.display()))?;
+        let cfg: Config =
+            serde_json::from_str(&raw).with_context(|| format!("parse {}", path.display()))?;
         Ok(cfg)
     }
 }
@@ -66,8 +66,7 @@ fn default_path() -> Option<PathBuf> {
 /// that case only root or the original (calling) uid is acceptable.
 fn verify_perms(path: &Path) -> Result<()> {
     use std::os::unix::fs::MetadataExt;
-    let meta = std::fs::metadata(path)
-        .with_context(|| format!("stat {}", path.display()))?;
+    let meta = std::fs::metadata(path).with_context(|| format!("stat {}", path.display()))?;
     let mode = meta.mode();
     if mode & 0o002 != 0 {
         bail!(
@@ -78,7 +77,10 @@ fn verify_perms(path: &Path) -> Result<()> {
     }
     let owner = meta.uid();
     let euid = unsafe { libc::geteuid() };
-    let allowed_uid = match std::env::var("SUDO_UID").ok().and_then(|v| v.parse::<u32>().ok()) {
+    let allowed_uid = match std::env::var("SUDO_UID")
+        .ok()
+        .and_then(|v| v.parse::<u32>().ok())
+    {
         Some(u) => u,
         None => euid,
     };
