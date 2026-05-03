@@ -141,17 +141,64 @@ Adding more ProtonVPN exits later is just step 2 + a new entry in
 ## Sudoers
 
 Most launchers can't pop a password prompt, so add a passwordless rule for
-the operations that need root:
+the operations that need root. Drop it into `/etc/sudoers.d/wgswitch` rather
+than editing the main `/etc/sudoers`:
 
-```
+```sh
+sudo tee /etc/sudoers.d/wgswitch >/dev/null <<'SUDOERS'
 %admin ALL=(root) NOPASSWD: /usr/local/bin/wgswitch connect *, \
                             /usr/local/bin/wgswitch off, \
                             /usr/local/bin/wgswitch off *, \
                             /usr/local/bin/wgswitch list*, \
                             /usr/local/bin/wgswitch status*
+SUDOERS
+sudo chmod 440 /etc/sudoers.d/wgswitch
+sudo visudo -cf /etc/sudoers.d/wgswitch
 ```
 
-Adjust path and group to your system.
+`visudo -cf` parses the file and refuses to lock you out if the syntax is
+wrong — always run it before logging out. Adjust path and group to your
+system (on Linux the admin group is usually `sudo` or `wheel`).
+
+## LeaderKey
+
+[LeaderKey](https://github.com/mikker/LeaderKey) is a chord launcher for
+macOS — its `config.json` is a tree of groups + actions. Drop a `v` group
+into yours so `<leader> v u` connects Ukraine, `<leader> v e` connects
+Spain, `<leader> v o` drops everything. The trailing
+`open "swiftbar://refreshallplugins"` nudges SwiftBar to redraw the menubar
+immediately instead of waiting for the next poll.
+
+```json
+{
+  "type": "group",
+  "actions": [
+    {
+      "key": "v",
+      "type": "group",
+      "actions": [
+        {
+          "key": "u",
+          "type": "command",
+          "value": "sudo /usr/local/bin/wgswitch connect ua --notify && open \"swiftbar://refreshallplugins\""
+        },
+        {
+          "key": "e",
+          "type": "command",
+          "value": "sudo /usr/local/bin/wgswitch connect es --notify && open \"swiftbar://refreshallplugins\""
+        },
+        {
+          "key": "o",
+          "type": "command",
+          "value": "sudo /usr/local/bin/wgswitch off --notify && open \"swiftbar://refreshallplugins\""
+        }
+      ]
+    }
+  ]
+}
+```
+
+Relies on the sudoers `NOPASSWD` rule above so `sudo` doesn't prompt.
 
 ## Status JSON
 
@@ -224,6 +271,10 @@ You write the thin layer; `wgswitch` only emits raw JSON.
   Requires `jq` and the sudoers NOPASSWD rule above. Override binary paths
   via `WGSWITCH=` / `SUDO=` env vars in the SwiftBar plugin config if your
   install lives somewhere other than `/usr/local/bin`.
+
+  | Connected | Disconnected |
+  | --- | --- |
+  | ![SwiftBar connected](docs/swiftbar_connected.png) | ![SwiftBar disconnected](docs/swiftbar_not_connect.png) |
 - **waybar custom module**: call `sudo wgswitch status --format json`,
   project into `{ "text": "...", "tooltip": "..." }` via a small wrapper.
 
@@ -235,6 +286,8 @@ sudo wgswitch --notify connect ua
 
 Titles are fixed: `✅ Connected`, `⭕ Disconnected`, `🆘 Error`. Body is
 `<emoji> <label>` plus `description` if present.
+
+![Disconnect notification](docs/notification.png)
 
 - macOS: `osascript`. When run under sudo, `wgswitch` re-enters the calling
   user's UI session via `sudo -u $SUDO_USER` so the banner is delivered to
