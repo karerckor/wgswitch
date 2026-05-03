@@ -36,6 +36,7 @@ terminal use, but if you plan to wire it up to **`sudoers NOPASSWD`**
 (below), copy it into a root-owned location first:
 
 ```sh
+sudo mkdir -p /usr/local/bin   # may not exist by default on Apple Silicon
 sudo install -m 755 -o root ~/.cargo/bin/wgswitch /usr/local/bin/wgswitch
 ```
 
