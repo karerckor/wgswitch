@@ -37,26 +37,46 @@
 
 set -euo pipefail
 
-# ---- config (override via env if your paths differ) ----------------------
-WGSWITCH="${WGSWITCH:-/usr/local/bin/wgswitch}"
+# ---- locate binaries (without trusting $PATH; SwiftBar trims env) -------
 SUDO="${SUDO:-/usr/bin/sudo}"
 
-# Find jq in the usual places without trusting $PATH (SwiftBar runs with a
-# trimmed env on macOS).
-for candidate in /opt/homebrew/bin/jq /usr/local/bin/jq /usr/bin/jq; do
-  if [ -x "$candidate" ]; then
-    JQ="$candidate"
-    break
-  fi
-done
+# Resolve wgswitch in the usual install locations. A `cargo install` lands
+# in ~/.cargo/bin, so we include $HOME paths too. SECURITY: if the binary
+# lives under a user-writable directory like ~/.cargo/bin and that exact
+# path is added to `sudoers NOPASSWD`, any `cargo install --force` becomes a
+# privilege-escalation primitive. Prefer copying it into a root-owned
+# location for the sudoers rule:
+#     sudo install -m 755 -o root ~/.cargo/bin/wgswitch /usr/local/bin/wgswitch
+if [ -z "${WGSWITCH:-}" ]; then
+  for candidate in \
+      /usr/local/bin/wgswitch \
+      /opt/homebrew/bin/wgswitch \
+      "$HOME/.cargo/bin/wgswitch" \
+      /usr/bin/wgswitch; do
+    if [ -x "$candidate" ]; then
+      WGSWITCH="$candidate"
+      break
+    fi
+  done
+fi
+WGSWITCH="${WGSWITCH:-}"
+
+if [ -z "${JQ:-}" ]; then
+  for candidate in /opt/homebrew/bin/jq /usr/local/bin/jq /usr/bin/jq; do
+    if [ -x "$candidate" ]; then
+      JQ="$candidate"
+      break
+    fi
+  done
+fi
 JQ="${JQ:-}"
 
 # ---- collect snapshot ----------------------------------------------------
-if [ ! -x "$WGSWITCH" ] || [ -z "$JQ" ]; then
+if [ -z "$WGSWITCH" ] || [ -z "$JQ" ]; then
   echo "🔒 wg | color=#888"
   echo "---"
-  [ ! -x "$WGSWITCH" ] && echo "wgswitch not found at $WGSWITCH | color=red"
-  [ -z "$JQ" ] && echo "jq not found (brew install jq) | color=red"
+  [ -z "$WGSWITCH" ] && echo "wgswitch not found (cargo install wgswitch) | color=red"
+  [ -z "$JQ" ]       && echo "jq not found (brew install jq) | color=red"
   exit 0
 fi
 

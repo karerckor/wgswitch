@@ -31,6 +31,19 @@ launchers and bar widgets can call them without prompting.
 cargo install wgswitch
 ```
 
+This drops the binary at `~/.cargo/bin/wgswitch`. It works fine for direct
+terminal use, but if you plan to wire it up to **`sudoers NOPASSWD`**
+(below), copy it into a root-owned location first:
+
+```sh
+sudo install -m 755 -o root ~/.cargo/bin/wgswitch /usr/local/bin/wgswitch
+```
+
+> **Why:** a `sudoers NOPASSWD` rule pointing at a user-writable path is a
+> privilege-escalation primitive — any `cargo install --force` would
+> replace the binary with arbitrary code that then runs as root. Always
+> point sudoers at a path the user can't overwrite.
+
 `wg` and `wg-quick` are looked up only in trusted absolute paths
 (`/usr/bin`, `/usr/local/bin`, `/opt/homebrew/bin`, `/sbin`, `/usr/sbin`).
 
