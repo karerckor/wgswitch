@@ -20,8 +20,10 @@ wgswitch status [--format json|text]   # current state + transfer + rates
 wgswitch --notify connect <profile>    # also fire a desktop notification
 ```
 
-`connect`, `off`, and `status` need root (same as `wg-quick`/`wg show`). `list`
-does not.
+All commands need root: `connect` / `off` go through `wg-quick`, `status` calls
+`wg show`, and `list` reads `/etc/wireguard/` which is `0700 root:root` on
+both macOS and Linux. Wire them up via sudoers `NOPASSWD` (see below) so
+launchers and bar widgets can call them without prompting.
 
 ## Install
 
@@ -108,7 +110,7 @@ Wiring up two of them (here: Spain and Ukraine) end-to-end:
 5. Verify:
 
    ```sh
-   wgswitch list
+   sudo wgswitch list
    # es               🇪🇸 Spain
    # ua               🇺🇦 Ukraine
 
@@ -131,10 +133,11 @@ the operations that need root:
 %admin ALL=(root) NOPASSWD: /usr/local/bin/wgswitch connect *, \
                             /usr/local/bin/wgswitch off, \
                             /usr/local/bin/wgswitch off *, \
+                            /usr/local/bin/wgswitch list*, \
                             /usr/local/bin/wgswitch status*
 ```
 
-Adjust path and group to your system. `list` doesn't need a rule.
+Adjust path and group to your system.
 
 ## Status JSON
 

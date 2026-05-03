@@ -26,7 +26,14 @@
 #       %admin ALL=(root) NOPASSWD: /usr/local/bin/wgswitch connect *, \
 #                                   /usr/local/bin/wgswitch off,        \
 #                                   /usr/local/bin/wgswitch off *,      \
+#                                   /usr/local/bin/wgswitch list*,      \
 #                                   /usr/local/bin/wgswitch status*
+#
+# This plugin only ever calls `wgswitch status --format json`. The status
+# JSON already includes every discovered profile (status under root scans
+# /etc/wireguard/ itself), so no separate `list` invocation is needed here.
+# `list*` is in the sudoers example above purely so you can use bare
+# `sudo wgswitch list` from a terminal without typing a password.
 
 set -euo pipefail
 
