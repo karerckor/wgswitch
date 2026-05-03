@@ -107,6 +107,20 @@ eval "$("$JQ" -r '
   @sh "TX_RATE=\(($p.totals // {}).tx_per_sec_human // "")"
 ' <<<"$JSON")"
 
+# SwiftBar 2.x action items use a SPACE-separated form after the first `|`:
+#   <Title> | shell=<bin> param1=arg1 param2=arg2 terminal=false refresh=true
+# Only the first `|` separates title from params; further `|` characters
+# get parsed as part of the next key (e.g. `| param2`) and the param is
+# silently dropped. Use spaces between key=value pairs.
+# Also: `param0` is fine — `bashParams` collects every key starting with
+# `param` and sorts them lexicographically. We start at `param1` only
+# because that is what BitBar/SwiftBar docs lead with.
+# We invoke sudo with `-n` so a missing NOPASSWD rule fails fast instead of
+# hanging on a password prompt SwiftBar can't fulfill.
+# `--notify` is appended *after* the positional args so `wgswitch connect *`
+# and `wgswitch off *` from the sudoers example still match (sudo's `*`
+# wildcard matches across argument boundaries).
+
 # ---- menubar line --------------------------------------------------------
 if [ -n "$CURRENT" ]; then
   TITLE="${ACTIVE_EMOJI:-🟢}"
@@ -115,7 +129,7 @@ if [ -n "$CURRENT" ]; then
   fi
   echo "$TITLE"
 else
-  echo "○ wg | color=#888"
+  echo "🔌"
 fi
 echo "---"
 
@@ -133,22 +147,26 @@ if [ -n "$CURRENT" ]; then
     echo "  speed: ↓ $RX_RATE / ↑ $TX_RATE | font=Menlo size=12"
   fi
   echo "---"
-  echo "Disconnect | shell=$SUDO | param0=$WGSWITCH | param1=--notify | param2=off | terminal=false | refresh=true"
+  echo "Disconnect | shell=$SUDO param1=-n param2=$WGSWITCH param3=off param4=--notify terminal=false refresh=true"
   echo "---"
 fi
 
 # ---- connect submenu -----------------------------------------------------
 echo "Connect"
+# Use ASCII Unit Separator (\x1f) instead of @tsv: bash `read` with a
+# whitespace IFS like tab collapses runs of separators, so a profile with
+# an empty emoji column (e.g. `de\t\tde\tfalse`) gets parsed as
+# id=de, emoji=de, label=false — visible as "de false (de)" in the menu.
 "$JQ" -r '
   .profiles[] |
-  [.id, (.emoji // ""), (.label // .id), (.active|tostring)] | @tsv
-' <<<"$JSON" | while IFS=$'\t' read -r id emoji label active; do
+  "\(.id)\(.emoji // "")\(.label // .id)\(.active|tostring)"
+' <<<"$JSON" | while IFS=$'\x1f' read -r id emoji label active; do
   prefix=""
   [ -n "$emoji" ] && prefix="$emoji "
   if [ "$active" = "true" ]; then
     echo "-- ✓ ${prefix}${label} (${id}) | color=#888"
   else
-    echo "-- ${prefix}${label} (${id}) | shell=$SUDO | param0=$WGSWITCH | param1=--notify | param2=connect | param3=$id | terminal=false | refresh=true"
+    echo "-- ${prefix}${label} (${id}) | shell=$SUDO param1=-n param2=$WGSWITCH param3=connect param4=$id param5=--notify terminal=false refresh=true"
   fi
 done
 

@@ -1,11 +1,44 @@
 use anyhow::{Context, Result, anyhow, bail};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::profile::{ResolvedProfile, validate_name};
 
 const RUN_DIR: &str = "/var/run/wireguard";
+
+// wg-quick on macOS is a bash script that shells out to `wg`, `wireguard-go`,
+// `bash`, `route`, `networksetup`, etc. via $PATH. Under sudo with `env_reset`
+// (the macOS default) and no `env_keep += "PATH"`, the subprocess inherits the
+// caller's PATH — minimal under launchd/SwiftBar/cron, missing /opt/homebrew/bin.
+// Inject a known-good PATH so wg-quick can find its peers regardless of caller.
+fn child_path(bin: &Path) -> OsString {
+    let mut parts: Vec<PathBuf> = Vec::new();
+    if let Some(parent) = bin.parent() {
+        parts.push(parent.to_path_buf());
+    }
+    for p in [
+        "/opt/homebrew/bin",
+        "/opt/homebrew/sbin",
+        "/usr/local/bin",
+        "/usr/local/sbin",
+        "/usr/bin",
+        "/bin",
+        "/usr/sbin",
+        "/sbin",
+    ] {
+        parts.push(PathBuf::from(p));
+    }
+    if let Some(existing) = std::env::var_os("PATH") {
+        for p in std::env::split_paths(&existing) {
+            parts.push(p);
+        }
+    }
+    let mut seen: HashSet<PathBuf> = HashSet::new();
+    parts.retain(|p| seen.insert(p.clone()));
+    std::env::join_paths(parts).unwrap_or_default()
+}
 
 const WG_QUICK_PATHS: &[&str] = &[
     "/usr/bin/wg-quick",
@@ -61,6 +94,7 @@ pub fn down_iface(name: &str) -> Result<()> {
 fn run_quick(action: &str, target: &str) -> Result<()> {
     let bin = wg_quick()?;
     let status = Command::new(&bin)
+        .env("PATH", child_path(&bin))
         .arg(action)
         .arg(target)
         .status()
@@ -118,6 +152,7 @@ pub fn active_config_names() -> Result<Vec<String>> {
 pub fn active_kernel_interfaces() -> Result<Vec<String>> {
     let bin = wg()?;
     let output = Command::new(&bin)
+        .env("PATH", child_path(&bin))
         .arg("show")
         .arg("interfaces")
         .output()
@@ -139,6 +174,7 @@ pub fn active_kernel_interfaces() -> Result<Vec<String>> {
 pub fn show_dump() -> Result<String> {
     let bin = wg()?;
     let output = Command::new(&bin)
+        .env("PATH", child_path(&bin))
         .arg("show")
         .arg("all")
         .arg("dump")
